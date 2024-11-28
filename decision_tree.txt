@@ -1,0 +1,37 @@
+import pandas as pd 
+from sklearn.model_selection import train_test_split 
+from sklearn.tree import DecisionTreeClassifier 
+from sklearn.metrics import classification_report, accuracy_score 
+from sklearn import tree 
+import matplotlib.pyplot as plt 
+# Load the CSV file 
+f
+ ile_path = 'F:\\Third Year\\DWDM_Lab\\shopping_trends.csv'  # Replace with your actual CSV 
+f
+ ile path 
+data = pd.read_csv(file_path) 
+# Preprocess the data 
+# Convert categorical columns to numeric using one-hot encoding 
+data = pd.get_dummies(data) 
+# Assuming the last column is the target variable and the rest are features 
+X = data.iloc[:, :-1]  # Features 
+y = data.iloc[:, -1]   # Target variable 
+# Split the data into training and testing sets 
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42) 
+# Initialize the Decision Tree Classifier 
+clf = DecisionTreeClassifier() 
+# Train the model 
+clf.fit(X_train, y_train) 
+# Make predictions 
+y_pred = clf.predict(X_test) 
+# Evaluate the model 
+print("\nClassification Report:") 
+print(classification_report(y_test, y_pred, zero_division=0)) 
+print("Accuracy Score:", accuracy_score(y_test, y_pred)) 
+# Visualize the Decision Tree 
+plt.figure(figsize=(20, 10)) 
+tree.plot_tree(clf, feature_names=list(X.columns), class_names=[str(c) for c in clf.classes_], 
+f
+ illed=True, rounded=True) 
+plt.title("Decision Tree Visualization") 
+plt.show()

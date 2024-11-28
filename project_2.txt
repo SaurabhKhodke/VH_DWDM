@@ -1,0 +1,150 @@
+# Import required libraries 
+import pandas as pd 
+from sklearn.model_selection import train_test_split 
+from sklearn.naive_bayes import GaussianNB 
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report 
+from sklearn.preprocessing import LabelEncoder 
+import seaborn as sns 
+import matplotlib.pyplot as plt 
+import pickle 
+import mysql.connector 
+# MySQL database connection function 
+def connect_to_mysql():
+ """ 
+    Connects to a MySQL database and retrieves data for display. 
+    Assumes a table named 'SoccerData' exists with similar columns as in the CSV. 
+    """ 
+    try: 
+        # Establish connection 
+        conn = mysql.connector.connect( 
+            host='localhost',      # e.g., 'localhost' 
+            user='root',  # MySQL username 
+            password='Shubham@1800',  # MySQL password 
+            database='41_DWDM_Project2'  # Database name 
+        ) 
+        cursor = conn.cursor() 
+ 
+        # Fetch a sample of data from the SoccerData table 
+        cursor.execute("SELECT * FROM soccerfulldata LIMIT 5;") 
+        sample_data = cursor.fetchall() 
+         
+        # Display column names and sample data 
+        print("\nSample Data from MySQL Database:") 
+        column_names = [desc[0] for desc in cursor.description] 
+        sample_df = pd.DataFrame(sample_data, columns=column_names) 
+        print(sample_df) 
+         
+        # Close the connection 
+        cursor.close() 
+        conn.close() 
+         
+    except mysql.connector.Error as err: 
+        print(f"Error: {err}")
+# Call the function to connect to MySQL and display data 
+connect_to_mysql() 
+ 
+# Load the dataset from CSV for model training 
+data = pd.read_csv('C:\\Users\\97474\\Documents\\Shubham\\Study\\TY 
+V\\OS\\SoccerFullData.csv') 
+ 
+# Display column names to understand the dataset structure 
+print("\nDataset Columns:\n", data.columns.tolist()) 
+ 
+# Dropping irrelevant columns 
+columns_to_drop = ['Name', 'Nationality', 'Club', 'Club_Position',  
+                   'Club_Joining', 'Contract_Expiry', 'Birth_Date',  
+                   'Preffered_Foot'] 
+data = data.drop(columns=columns_to_drop, errors='ignore') 
+ 
+# Handling missing values by dropping rows with missing values 
+data = data.dropna() 
+ 
+# Encode the target variable: 'Preffered_Position' -> 'Position' 
+le = LabelEncoder() 
+data['Position'] = le.fit_transform(data['Preffered_Position']) 
+ 
+# Feature selection for model training 
+features = ['Ball_Control', 'Dribbling', 'Standing_Tackle',  
+            'Aggression', 'Stamina', 'Speed', 'Interceptions'] 
+X = data[features] 
+y = (data['Rating'] > 75).astype(int)  # 1 if Rating > 75, else 0 
+ 
+# Split the dataset into training and test sets 
+X_train, X_test, y_train, y_test = train_test_split(X, y,                                                     test_size=0.3,  
+                                                    random_state=42) 
+ 
+# Train the Naive Bayes model 
+nb_model = GaussianNB() 
+nb_model.fit(X_train, y_train) 
+ 
+# Make predictions on the test set 
+y_pred = nb_model.predict(X_test) 
+ 
+# Evaluate the model 
+accuracy = accuracy_score(y_test, y_pred) 
+conf_matrix = confusion_matrix(y_test, y_pred) 
+classification_rep = classification_report(y_test, y_pred) 
+y_train_pred = nb_model.predict(X_train) 
+train_accuracy = accuracy_score(y_train, y_train_pred) 
+ 
+# Display the results in an organized format 
+print("\nModel Evaluation:") 
+print(f"Accuracy: {accuracy:.2f}") 
+# Display the training accuracy 
+print(f"Training Accuracy: {train_accuracy:.2f}") 
+print("\nConfusion Matrix:") 
+print(conf_matrix) 
+print("\nClassification Report:") 
+print(classification_rep) 
+ 
+# Plot the heatmap for the confusion matrix 
+plt.figure(figsize=(8, 6)) 
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',  
+            xticklabels=['Not Starter', 'Starter'],
+            yticklabels=['Not Starter', 'Starter']) 
+plt.xlabel('Predicted Label') 
+plt.ylabel('True Label') 
+plt.title('Confusion Matrix Heatmap') 
+plt.show() 
+ 
+# Save the trained model to a file for future use 
+model_filename = 'naive_bayes_model.pkl' 
+with open(model_filename, 'wb') as model_file: 
+    pickle.dump(nb_model, model_file) 
+ 
+print(f"\nModel saved to {model_filename}") 
+ 
+# Single user input testing functionality 
+ 
+# Function to test a single input 
+def test_single_input(model, input_features): 
+    """ 
+    Takes a trained model and a dictionary of input features. 
+    Predicts whether the player is a starter. 
+    """ 
+    # Create a DataFrame from the input features for prediction 
+    input_df = pd.DataFrame([input_features]) 
+ 
+    # Predict the outcome 
+    prediction = model.predict(input_df)[0] 
+ 
+    # Decode and display the result 
+    result = "Starter" if prediction == 1 else "Not Starter" 
+    print(f"\nPrediction for the input features: {result}") 
+# Example of user input 
+single_input_features = { 
+    'Ball_Control': 85, 
+    'Dribbling': 78, 
+    'Standing_Tackle': 70, 
+    'Aggression': 60, 
+    'Stamina': 80, 
+    'Speed': 75, 
+    'Interceptions': 68 
+} 
+ 
+# Load the trained model 
+with open(model_filename, 'rb') as model_file: 
+    loaded_model = pickle.load(model_file) 
+ 
+# Perform single input testing 
+test_single_input(loaded_model, single_input_features) 

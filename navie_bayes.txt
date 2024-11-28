@@ -1,0 +1,50 @@
+import pandas as pd 
+from sklearn.model_selection import train_test_split 
+from sklearn.naive_bayes import GaussianNB 
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix 
+from sklearn.preprocessing import LabelEncoder 
+import seaborn as sns 
+import matplotlib.pyplot as plt 
+# Load the dataset from a CSV file 
+data = pd.read_csv('F:\\Third Year\\DWDM_Lab\\data.csv') 
+# Replace 'actual_target_column_name' with the name of your target column 
+target_column_name = 'averageRating' 
+# Discretize the target variable by binning 
+num_bins = 5  # Number of bins/categories to divide the target variable into 
+data['target_binned'] = pd.cut(data[target_column_name], bins=num_bins, labels=False) 
+# Encode any non-numeric columns using LabelEncoder 
+label_encoders = {} 
+for column in data.columns: 
+if data[column].dtype == 'object': 
+le = LabelEncoder() 
+data[column] = le.fit_transform(data[column]) 
+label_encoders[column] = le 
+# Split the dataset into features (X) and the new discretized target (y) 
+X = data.drop([target_column_name, 'target_binned'], axis=1) 
+y = data['target_binned'] 
+# Split the data into training and testing sets with stratification 
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42) 
+# Initialize the Gaussian Naive Bayes classifier 
+gnb = GaussianNB() 
+# Train the classifier 
+gnb.fit(X_train, y_train) 
+# Make predictions on the testing set 
+y_pred = gnb.predict(X_test) 
+# Display a summary of the results 
+print("Classification Report:") 
+print(classification_report(y_test, y_pred, zero_division=0))  # Handle undefined metrics 
+print("\nAccuracy Score:") 
+print(accuracy_score(y_test, y_pred)) 
+# Generate the confusion matrix 
+conf_matrix = confusion_matrix(y_test, y_pred) 
+# Print the confusion matrix 
+print("\nConfusion Matrix:") 
+print(conf_matrix) 
+# Plot the heatmap for the confusion matrix 
+plt.figure(figsize=(10, 8)) 
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=range(num_bins), 
+yticklabels=range(num_bins)) 
+plt.xlabel('Predicted Labels') 
+plt.ylabel('True Labels') 
+plt.title('Confusion Matrix Heatmap') 
+plt.show()
